@@ -178,6 +178,24 @@ void cat(int client, FILE *resource)
  }
 }
 
+void catpic(int client, FILE* resource,int len)
+{
+	char buffer[1024];
+	bzero(buffer, sizeof(buffer));
+	while( !feof(resource)){
+		len = fread(buffer, 1, 1024,resource);
+		if(len != write(client, buffer, len)){
+			break;
+		}
+ 	}
+ 
+}
+
+
+
+
+
+
 /**********************************************************************/
 /* Inform the client that a CGI script could not be executed.
  * Parameter: the client socket descriptor. */
@@ -366,6 +384,8 @@ void headers(int client, const char *filename)
 	c++;
  }
  char ftype[200];
+ strcpy(ftype, filename+c+1);
+
 	 strcpy(buf, "HTTP/1.1 200 OK\r\n");
 	 send(client, buf, strlen(buf), 0);
 	 strcpy(buf, SERVER_STRING);
@@ -428,17 +448,30 @@ void serve_file(int client, const char *filename)
  int c=0;
  while(*(filename+c) != '.')
 	c++;
- 
+ char ftype[20];
+ strcpy(ftype, filename+c+1);
 
- resource = fopen(filename, "r");
- 
+
+ if(strcmp(ftype, "jpg") == 0) {
+        printf("This is a jpg\n");
+        resource = fopen(filename,"rb");	
+ }
+ else resource = fopen(filename,"r");
 
  if (resource == NULL)
   not_found(client);
  else
  {
-  headers(client, filename);
-  cat(client, resource);
+   headers(client, filename);
+   if( strcmp(ftype,"jpg")==0){
+	 struct stat st;
+         stat(filename, &st);
+         int len = st.st_size;
+         catpic(client, resource, len); 
+    }
+    else{  
+	  cat(client, resource);
+        }
  }
  fclose(resource);
 }
