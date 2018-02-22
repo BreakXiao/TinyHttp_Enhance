@@ -64,7 +64,7 @@ void *accept_request(void *client1)
  char *query_string = NULL;
 
  numchars = get_line(client, buf, sizeof(buf));
- printf("%s\n",buf);
+ printf("1: %s\n",buf);
  i = 0; j = 0;
  while (!ISspace(buf[j]) && (i < sizeof(method) - 1))
  {
@@ -79,8 +79,11 @@ void *accept_request(void *client1)
   return NULL;
  }
 
- if (strcasecmp(method, "POST") == 0)
-  cgi = 1;
+ if (strcasecmp(method, "POST") == 0){
+    printf("This is Post!");
+    cgi = 1;
+  }
+
 
  i = 0;
  while (ISspace(buf[j]) && (j < sizeof(buf)))
@@ -109,8 +112,6 @@ void *accept_request(void *client1)
  if (path[strlen(path) - 1] == '/')
   strcat(path, "index.html");
 
- printf("path= %s\n",path);
-
  if (stat(path, &st) == -1) {
   while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
    numchars = get_line(client, buf, sizeof(buf));
@@ -128,7 +129,7 @@ void *accept_request(void *client1)
 	   cgi = 1;
 	}
 
-   printf(" cgi=%d\n",cgi);
+  printf(" cgi=%d\n",cgi);
   if (!cgi)
    serve_file(client, path);
   else
@@ -249,19 +250,19 @@ void execute_cgi(int client, const char *path,
   while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
   {
      numchars = get_line(client, buf, sizeof(buf));
-     printf("%s\n",buf); 
+     //printf("%s\n",buf); 
  }
  else    /* POST */
  {
   numchars = get_line(client, buf, sizeof(buf));
-  printf("%s\n",buf);
+  //printf("%s\n",buf);
   while ((numchars > 0) && strcmp("\n", buf))
   {
    buf[15] = '\0';
    if (strcasecmp(buf, "Content-Length:") == 0)
     content_length = atoi(&(buf[16]));
    numchars = get_line(client, buf, sizeof(buf));
-    printf("%s\n",buf);
+   // printf("%s\n",buf);
   }
   if (content_length == -1) {
    bad_request(client);
@@ -269,8 +270,23 @@ void execute_cgi(int client, const char *path,
   }
  }
 
- sprintf(buf, "HTTP/1.1 200 OK\r\n");
+ sprintf(buf, "HTTP/1.0 200 OK\r\n");
  send(client, buf, strlen(buf), 0);
+
+
+ int ci = 0;
+ while(*(path + ci) != '.')
+	c++;
+ char ftype[50];
+ strcpy(ftype, path + ci + 1);
+ if(strcmp(ftype, "lua") == 0){
+	sprintf(buf, "Content-Type: text/html; charset=ISO-8859-1\r\n");
+	send(client, buf, strlen(buf), 0 );
+	sprintf(buf, "\r\n");
+	send(client, buf, strlen(buf), 0);
+ }
+
+
 
  if (pipe(cgi_output) < 0) {
   cannot_execute(client);
@@ -305,7 +321,7 @@ void execute_cgi(int client, const char *path,
    sprintf(length_env, "CONTENT_LENGTH=%d", content_length);
    putenv(length_env);
   }
-  execl(path, path, NULL);
+  execl(path, path,NULL);
   exit(0);
  } else {    /* parent */
   close(cgi_output[1]);
@@ -390,7 +406,7 @@ void headers(int client, const char *filename)
 	 send(client, buf, strlen(buf), 0);
 	 strcpy(buf, SERVER_STRING);
 	 send(client, buf, strlen(buf), 0);
-         if(strcmp(ftype, "jpg") == 0)
+         if(strcmp(ftype, "jpg") == 0 || strcmp(ftype,"png") == 0)
 		 sprintf(buf, "Content-Type: image/jpeg\r\n");
 	else
 		 sprintf(buf, "Content-Type: text/html\r\n");
@@ -452,8 +468,7 @@ void serve_file(int client, const char *filename)
  strcpy(ftype, filename+c+1);
 
 
- if(strcmp(ftype, "jpg") == 0) {
-        printf("This is a jpg\n");
+ if(strcmp(ftype, "jpg") == 0 || strcmp(ftype,"png")==0) {
         resource = fopen(filename,"rb");	
  }
  else resource = fopen(filename,"r");
@@ -463,7 +478,7 @@ void serve_file(int client, const char *filename)
  else
  {
    headers(client, filename);
-   if( strcmp(ftype,"jpg")==0){
+   if( strcmp(ftype,"jpg")==0 || strcmp(ftype, "png") == 0){
 	 struct stat st;
          stat(filename, &st);
          int len = st.st_size;
