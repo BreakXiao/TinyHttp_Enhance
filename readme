@@ -1,0 +1,4 @@
+This is TinyHttp based on David Blackstone's opensource program.
+What's more, I add some features which is as follows:
+1. Supporting picture response
+2. Supporting My ShuffleCard(int BreakXiao/ShuffleWeb)
